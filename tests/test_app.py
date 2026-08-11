@@ -51,8 +51,8 @@ def test_signup_activity_full(client):
     # Arrange — fill Chess Club (max 12) with unique emails
     activity = "Chess Club"
     for i in range(10):
-        client.post(f"/activities/{activity}/signup?email=filler{i}@mergington.edu")
-
+        res = client.post(f"/activities/{activity}/signup?email=filler{i}@mergington.edu")
+        assert res.status_code == 200
     # Act — one more should be rejected
     response = client.post(f"/activities/{activity}/signup?email=overflow@mergington.edu")
 
