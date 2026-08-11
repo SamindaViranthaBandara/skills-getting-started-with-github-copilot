@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Clear loading message
       activitiesList.innerHTML = "";
+      activitySelect.length = 1;
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -20,12 +21,61 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        const escapeHtml = (value) =>
+          String(value).replace(/[&<>"']/g, (ch) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[ch]
+          );
+
+        const safeName = escapeHtml(name);
+        const safeDescription = escapeHtml(details.description);
+        const safeSchedule = escapeHtml(details.schedule);
+
+        const participantItems = details.participants.length
+          ? details.participants
+              .map((p) => {
+                const safeEmail = escapeHtml(p);
+                return `<li><span class="participant-email">${safeEmail}</span><button class="remove-btn" data-activity="${safeName}" data-email="${safeEmail}" aria-label="Unregister ${safeEmail}" title="Unregister">&#x2715;</button></li>`;
+              })
+              .join("")
+          : `<li class="no-participants">No participants yet</li>`;
+
         activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
+          <h4>${safeName}</h4>
+          <p>${safeDescription}</p>
+          <p><strong>Schedule:</strong> ${safeSchedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <strong>Participants:</strong>
+            <ul class="participants-list">${participantItems}</ul>
+          </div>
         `;
+
+        activityCard.querySelectorAll(".remove-btn").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const activity = btn.dataset.activity;
+            const email = btn.dataset.email;
+            try {
+              const res = await fetch(
+                `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
+                { method: "DELETE" }
+              );
+              if (res.ok) {
+                fetchActivities();
+              } else {
+                const err = await res.json();
+                alert(err.detail || "Failed to unregister");
+              }
+            } catch {
+              alert("Failed to unregister. Please try again.");
+            }
+          });
+        });
 
         activitiesList.appendChild(activityCard);
 
@@ -62,6 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
