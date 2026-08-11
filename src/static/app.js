@@ -20,14 +20,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        const escapeHtml = (value) =>
+          String(value).replace(/[&<>"']/g, (ch) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[ch]
+          );
+
+        const safeName = escapeHtml(name);
+        const safeDescription = escapeHtml(details.description);
+        const safeSchedule = escapeHtml(details.schedule);
+
         const participantItems = details.participants.length
-          ? details.participants.map(p => `<li><span class="participant-email">${p}</span><button class="remove-btn" data-activity="${name}" data-email="${p}" title="Unregister">&#x2715;</button></li>`).join("")
+          ? details.participants
+              .map((p) => {
+                const safeEmail = escapeHtml(p);
+                return `<li><span class="participant-email">${safeEmail}</span><button class="remove-btn" data-activity="${safeName}" data-email="${safeEmail}" aria-label="Unregister ${safeEmail}" title="Unregister">&#x2715;</button></li>`;
+              })
+              .join("")
           : `<li class="no-participants">No participants yet</li>`;
 
         activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
+          <h4>${safeName}</h4>
+          <p>${safeDescription}</p>
+          <p><strong>Schedule:</strong> ${safeSchedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
           <div class="participants-section">
             <strong>Participants:</strong>
